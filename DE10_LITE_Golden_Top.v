@@ -127,6 +127,7 @@ module DE10_LITE_Golden_Top(
 //  REG/WIRE declarations
 //=======================================================
 
+
 wire clock;
 clock_divider div(.clock_in(MAX10_CLK1_50), .clock_out(clock));
 
@@ -138,8 +139,25 @@ wire pb_out;
 
 DeBounce debounce(MAX10_CLK1_50, 1, KEY[0], pb_out);
 
-counter count(.clock(pb_out), .out(no));
+counter count(.clock(pb_out), .out(LEDR[3:0]));
 
+
+	wire CSn; // chip enable. active low -> writing or reading from register. 
+	wire E; // enable/clock, neg edge -> enables data IO buffers and clocks data
+	reg [7:0] D; // biderectional data bus
+	wire RS; // register select. low -> writing to address register, high -> writing to register selected by address
+	wire RW; // read or write register. low -> write, high -> read 
+	
+	wire CLK; // character clock, neg edge ->
+	wire RSTn; // reset. active low -> all registers cleared and outputs are driven low.
+
+	wire HSYNC; //
+	wire VSYNC;
+	wire DE; // display enable. high -> addressing in active display area.
+
+	
+	
+	MC6845 crtc (.CSn(CSn), .E(E), .D(D), .RS(RS), .RW(RW), .CLK(CLK), .RSTn(RSTn), .HSYNC(HSYNC), .VSYNC(VSYNC), .DE(DE));
 
 
 //=======================================================
@@ -147,8 +165,6 @@ counter count(.clock(pb_out), .out(no));
 //=======================================================
 
 
-
-
-assign LEDR[3:0] = no;
+//assign LEDR[3:0] = no;
 
 endmodule

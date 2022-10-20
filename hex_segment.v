@@ -1,6 +1,6 @@
-module hex_segment(in)
+module hex_segment(input in);
 
-input reg[0:3] in;
+//input reg[0:3] in;
 
 always
 begin
