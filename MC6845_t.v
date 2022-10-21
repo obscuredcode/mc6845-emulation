@@ -6,7 +6,7 @@ module MC6845_t;
 	reg RS; // register select. low -> writing to address register, high -> writing to register selected by address
 	reg RW; // read or write register. low -> write, high -> read 
 	
-	wire CLK; // character clock, neg edge ->
+	reg CLK; // character clock, neg edge ->
 	wire RSTn; // reset. active low -> all registers cleared and outputs are driven low.
 
 	wire HSYNC; //
@@ -30,22 +30,27 @@ module MC6845_t;
 	begin
 		CSn = 0;
 		write_register(5'b00000,8'h5e);
-		write_register(5'b00010,8'h4c);
-		write_register(5'b00011,8'h4e);
-		write_register(5'b00100,8'h0c);
-		write_register(5'b00101,8'h40);
-		write_register(5'b00110,8'h05);
-		write_register(5'b00111,8'h3c);
-		write_register(5'b01000,8'h3d);
-		write_register(5'b01001,8'h00);
-		write_register(5'b01010,8'h07);
+		write_register(5'b00001,8'h4c);
+		write_register(5'b00010,8'h4e);
+		write_register(5'b00011,8'h0c);
+		write_register(5'b00100,8'h40);
+		write_register(5'b00101,8'h05);
+		write_register(5'b00110,8'h3c);
+		write_register(5'b00111,8'h3d);
+		
+		write_register(5'b01000,8'h00); 
+		
+		write_register(5'b01001,8'h07);
+		
+		write_register(5'b01010,8'h00);
 		write_register(5'b01011,8'h00);
 		
-		write_register(5'b01100,8'h00);
-		write_register(5'b01101,8'h00);
+		write_register(5'b01100,8'h00); // start addr
 		
-		write_register(5'b01110,6'hfa);
-		write_register(5'b01111,8'had);
+		write_register(5'b01101,8'h00); // start addr
+		
+		write_register(5'b01110,6'hfa); // cursor h
+		write_register(5'b01111,8'had); // cursor l
 		
 		write_register(5'b10000,8'h00);
 		write_register(5'b10001,8'h00);
@@ -55,7 +60,20 @@ module MC6845_t;
 		read_register(5'b01111, READ_BUFFER[7:0]);
 		$display("reading upper: %x at %x", READ_BUFFER[13:8], 5'b01110);
 		$display("reading lower: %x at %x", READ_BUFFER[7:0], 5'b01111);
+		
+		$monitor($time, " HSYNC %b", HSYNC);
+		CLK = 0;
 	end
+	
+	
+	//reg clk_16 = 0;
+	
+	always
+	begin
+		#1000 CLK = ~CLK;
+	end
+	
+	
 	
 	task write_register;
 		input [4:0] address;
@@ -99,4 +117,7 @@ module MC6845_t;
 			data <= D;
 		end
 	endtask
+	
+	
+	
 endmodule

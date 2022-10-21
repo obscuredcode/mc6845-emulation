@@ -13,7 +13,7 @@ module MC6845(E, CSn, RS, RW, D,
 	*/
 	
 	
-	input CLK; // character clock, neg edge ->
+	input CLK; // character clock, neg edge -> active edge.
 	input RSTn; // reset. active low -> all registers cleared and outputs are driven low.
 
 	output HSYNC; //
@@ -34,10 +34,10 @@ module MC6845(E, CSn, RS, RW, D,
 	reg [7:0] HORIZONTAL_DISPLAYED; // R1  00001 displayed horizontal characeters per line. R1 > R0. write-only
 	reg [7:0] H_SYNC_POS;			// R2  00010 horizontal sync position. R2 + R3 > R0. R2 > R1. write-only
 	reg [3:0] SYNC_WIDTH;			// R3  00011 sync width for HS. VS sync width is fixed to 16. HS pulse width is in character times. write-only
-	reg [6:0] VERTICAL_TOTAL;		// R4  00100
-	reg [4:0] VERTICAL_TOTAL_ADJ;   // R5  00101
-	reg [6:0] VERTICAL_DISPLAYED;	// R6  00110
-	reg [6:0] V_SYNC_POS;		 	// R7  00111
+	reg [6:0] VERTICAL_TOTAL;		// R4  00100 vertical timing. determines VS frequency. in character row times - 1. 
+	reg [4:0] VERTICAL_TOTAL_ADJ;   // R5  00101 fraction component of vertical timing.
+	reg [6:0] VERTICAL_DISPLAYED;	// R6  00110 number of displayed vertical character rows. in character row times. R6 < R4.
+	reg [6:0] V_SYNC_POS;		 	// R7  00111 vertical sync position. in character row times R6 <= R7 <= R4.
 	reg [1:0] INTERLACE_MODE_SKEW;	// R8  01000
 	reg [4:0] MAX_SCANLINE_ADDRESS; // R9  01001
 	reg [6:0] CURSOR_START;			// R10 01010
@@ -53,8 +53,9 @@ module MC6845(E, CSn, RS, RW, D,
 	always @(negedge E, negedge RSTn)
 	begin
 		if (!RSTn) begin // reset processor interface
-			ADDRESS <= 5'b00000;
+			ADDRESS <= 5'b0;
 			// TODO: pull D low?
+			READ_BUFFER <= 8'b0;
 		end
 		else begin
 			if (!CSn) begin
@@ -108,6 +109,46 @@ module MC6845(E, CSn, RS, RW, D,
 			end
 		end
 	end
+	
+	reg [7:0] H_CTR = 0; // horizontal dot position
+	reg H_DISP = 0; // 1 if in horizontal displayed region
+	
+	reg [3:0] HSYNC_COUNTER = 0; // counter for HSYNC pulse width;
+	reg IN_HSYNC = 0; // this is only 1 during HSYNC pulse
+	
+	always @(negedge CLK)
+	begin
+		$display("Clocking %x", H_CTR);
+		// HSYNC generation
+		H_CTR <= H_CTR + 1;
+		case (H_CTR)
+			HORIZONTAL_TOTAL : begin // we reached end of horizontal line
+				H_CTR <= 8'b0;
+				H_DISP <= 1;
+			end
+			HORIZONTAL_DISPLAYED : begin
+				H_DISP <= 0;
+				// TODO: memory refresh stuff needs to be done since we want to show characters until this point
+			end
+			H_SYNC_POS : begin
+				IN_HSYNC <= 1;
+			end
+			8'd256 : H_CTR <= 0;
+		endcase
+		if(IN_HSYNC) // enable HSYNC pulse width counter
+			HSYNC_COUNTER <= HSYNC_COUNTER + 1;
+		case (HSYNC_COUNTER)
+			SYNC_WIDTH: begin
+				IN_HSYNC <= 0;
+				HSYNC_COUNTER <= 0;
+				// TODO: this is somehow involved in vertical control
+			end
+			4'b1111 : HSYNC_COUNTER <= 0;
+		endcase
+		
+	end
+	
+	assign HSYNC = IN_HSYNC;
+	
 	assign D[7:0] = RW ? READ_BUFFER : 8'bz;
-
 endmodule
