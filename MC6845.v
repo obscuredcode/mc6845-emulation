@@ -118,11 +118,11 @@ module MC6845(E, CSn, RS, RW, D,
 	reg [3:0] HSYNC_COUNTER = 0; // counter for HSYNC pulse width;
 	reg IN_HSYNC = 0; // this is only 1 during HSYNC pulse
 	
-	time sync_start;
-	time disp_start;
-	time disp_end;
+	//time sync_start;
+	//time disp_start;
+	//time disp_end;
 	
-	time line_start;
+	//time line_start;
 	
 	reg [6:0] LINE_CTR = 0;
 	reg V_DISP = 0; // in vertical displayed region
@@ -178,35 +178,33 @@ module MC6845(E, CSn, RS, RW, D,
 				LINE_CTR = 0;
 				V_DISP = 1'b1;
 			end else begin
-			
-				if(SCAN_LINE_CTR == MAX_SCANLINE_ADDRESS) begin // also check against vertical adjust register
+				if(SCAN_LINE_CTR != MAX_SCANLINE_ADDRESS) begin // also check against vertical adjust register
+					SCAN_LINE_CTR = SCAN_LINE_CTR + 1;
+				end else begin
 					SCAN_LINE_CTR = 0;
 					LINE_CTR = LINE_CTR + 1; // increment number of lines
 					//$strobe("line ctr %x", LINE_CTR);
-				
-				end else begin
-					SCAN_LINE_CTR = SCAN_LINE_CTR + 1;
 					case (LINE_CTR)
 						VERTICAL_DISPLAYED + 1: begin
 							V_DISP = 0; // we entered the blanking region
 							//$display("vertical display region lasted %d ms scan_line_ctr %x, h_ctr %x", 
 							//		($time - disp_start)/1000000, SCAN_LINE_CTR, H_CTR);
-							disp_end = $time;
+							//disp_end = $time;
 						end
 						V_SYNC_POS + 1: begin
 							IN_VSYNC = 1;
-							$strobe("front porch lasted %d micros started vsync at %x", ($time - disp_end)/1000, LINE_CTR);
-							sync_start = $time;
+							//$strobe("front porch lasted %d micros started vsync at %x", ($time - disp_end)/1000, LINE_CTR);
+							//sync_start = $time;
 						end
 					endcase
 				end
 			end
 			
 			if(IN_VSYNC) begin
-				if(VSYNC_COUNTER == 5'hf) begin
+				if(VSYNC_COUNTER == 5'h2) begin
 					VSYNC_COUNTER = 0;
 					IN_VSYNC = 0;
-					$strobe("vsync lasted %d micros", ($time - sync_start)/1000);
+					//$strobe("vsync lasted %d micros", ($time - sync_start)/1000);
 				end else begin
 					VSYNC_COUNTER = VSYNC_COUNTER + 1;
 					//$strobe("vsync_counter %x", VSYNC_COUNTER);
@@ -217,6 +215,6 @@ module MC6845(E, CSn, RS, RW, D,
 	
 	assign HSYNC = IN_HSYNC;
 	assign VSYNC = IN_VSYNC;
-	
+	assign DE = H_DISP & V_DISP;
 	assign D[7:0] = RW ? READ_BUFFER : 8'bz;
 endmodule
