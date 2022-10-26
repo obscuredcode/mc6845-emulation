@@ -33,10 +33,10 @@ module MC6845_t;
 		write_register(5'b00001,8'h4c);
 		write_register(5'b00010,8'h4e); // hsync position = 4e
 		write_register(5'b00011,8'h0c);
-		write_register(5'b00100,8'h40);
+		write_register(5'b00100,8'h40); // vertical line width
 		write_register(5'b00101,8'h05);
-		write_register(5'b00110,8'h3c);
-		write_register(5'b00111,8'h3d);
+		write_register(5'b00110,8'h3c); // vertical displayed
+		write_register(5'b00111,8'h3d); // vsync pos = 3d
 		
 		write_register(5'b01000,8'h00); 
 		
@@ -61,7 +61,7 @@ module MC6845_t;
 		//$display("reading upper: %x at %x", READ_BUFFER[13:8], 5'b01110);
 		//$display("reading lower: %x at %x", READ_BUFFER[7:0], 5'b01111);
 		
-		$monitor("HSYNC %b at %d micros", HSYNC, $time/1000);
+		//$monitor("VSYNC %b at %d micros", VSYNC, $time/1000);
 		CLK = 0;
 	end
 	

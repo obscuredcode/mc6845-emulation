@@ -120,13 +120,19 @@ module MC6845(E, CSn, RS, RW, D,
 	
 	time sync_start;
 	time disp_start;
+	time disp_end;
 	
-	reg V_CTR = 0;
+	time line_start;
+	
+	reg [6:0] LINE_CTR = 0;
+	reg V_DISP = 0; // in vertical displayed region
 	reg [4:0] SCAN_LINE_CTR = 0;
+	reg [3:0] VSYNC_COUNTER = 0; // vsync width
+	reg IN_VSYNC = 0;
 	
 	always @(negedge CLK)
 	begin
-		$strobe("H_CTR %x at %d micros", H_CTR, $time/1000);
+		//$strobe("H_CTR %x V_CTR %x at %d micros", H_CTR, LINE_CTR, $time/1000);
 		// HSYNC generation
 		H_CTR = H_CTR + 1;
 		case (H_CTR)
@@ -134,25 +140,25 @@ module MC6845(E, CSn, RS, RW, D,
 				H_CTR = 8'b0;
 				H_DISP <= 1;
 				
-				// increment scan line counter
-				SCAN_LINE_CTR = SCAN_LINE_CTR + 1;
+				vertical_timing();
 				
-				$display("started display region");
-				disp_start = $time;
+				//$display("started display region");
+				//disp_start = $time;
 				
 			end
 			HORIZONTAL_DISPLAYED : begin
 				H_DISP <= 0;
 				IN_HSYNC <= 0;
-				$display("display region lasted %d micros", ($time - disp_start)/1000);
+				//$display("display region lasted %d micros", ($time - disp_start)/1000);
 				// TODO: memory refresh stuff needs to be done since we want to show characters until this point
 			end
 			H_SYNC_POS : begin
 				IN_HSYNC <= 1;
-				sync_start = $time;
+				//sync_start = $time;
 			end
-			8'd256 : H_CTR <= 0;
+			8'd256 : H_CTR = 0;
 		endcase
+		
 		if(IN_HSYNC) // enable HSYNC pulse width counter
 			HSYNC_COUNTER <= HSYNC_COUNTER + 1;
 		case (HSYNC_COUNTER)
@@ -160,14 +166,57 @@ module MC6845(E, CSn, RS, RW, D,
 				IN_HSYNC <= 0;
 				HSYNC_COUNTER <= 0;
 				// TODO: this is somehow involved in vertical control
-				$strobe("length of sync pulse: %d micros", ($time - sync_start)/1000);
+				//$strobe("length of sync pulse: %d micros", ($time - sync_start)/1000);
 			end
 			4'b1111 : HSYNC_COUNTER <= 0;
 		endcase
-		
-	end
+	end	
+	
+	task vertical_timing;
+		begin
+			if(LINE_CTR == VERTICAL_TOTAL) begin
+				LINE_CTR = 0;
+				V_DISP = 1'b1;
+			end else begin
+			
+				if(SCAN_LINE_CTR == MAX_SCANLINE_ADDRESS) begin // also check against vertical adjust register
+					SCAN_LINE_CTR = 0;
+					LINE_CTR = LINE_CTR + 1; // increment number of lines
+					//$strobe("line ctr %x", LINE_CTR);
+				
+				end else begin
+					SCAN_LINE_CTR = SCAN_LINE_CTR + 1;
+					case (LINE_CTR)
+						VERTICAL_DISPLAYED + 1: begin
+							V_DISP = 0; // we entered the blanking region
+							//$display("vertical display region lasted %d ms scan_line_ctr %x, h_ctr %x", 
+							//		($time - disp_start)/1000000, SCAN_LINE_CTR, H_CTR);
+							disp_end = $time;
+						end
+						V_SYNC_POS + 1: begin
+							IN_VSYNC = 1;
+							$strobe("front porch lasted %d micros started vsync at %x", ($time - disp_end)/1000, LINE_CTR);
+							sync_start = $time;
+						end
+					endcase
+				end
+			end
+			
+			if(IN_VSYNC) begin
+				if(VSYNC_COUNTER == 5'hf) begin
+					VSYNC_COUNTER = 0;
+					IN_VSYNC = 0;
+					$strobe("vsync lasted %d micros", ($time - sync_start)/1000);
+				end else begin
+					VSYNC_COUNTER = VSYNC_COUNTER + 1;
+					//$strobe("vsync_counter %x", VSYNC_COUNTER);
+				end
+			end
+		end
+	endtask
 	
 	assign HSYNC = IN_HSYNC;
+	assign VSYNC = IN_VSYNC;
 	
 	assign D[7:0] = RW ? READ_BUFFER : 8'bz;
 endmodule
