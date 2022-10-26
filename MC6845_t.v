@@ -31,7 +31,7 @@ module MC6845_t;
 		CSn = 0;
 		write_register(5'b00000,8'h5e);
 		write_register(5'b00001,8'h4c);
-		write_register(5'b00010,8'h4e);
+		write_register(5'b00010,8'h4e); // hsync position = 4e
 		write_register(5'b00011,8'h0c);
 		write_register(5'b00100,8'h40);
 		write_register(5'b00101,8'h05);
@@ -58,19 +58,20 @@ module MC6845_t;
 		read_register(5'b01110, READ_BUFFER[13:8]);
 		#period;
 		read_register(5'b01111, READ_BUFFER[7:0]);
-		$display("reading upper: %x at %x", READ_BUFFER[13:8], 5'b01110);
-		$display("reading lower: %x at %x", READ_BUFFER[7:0], 5'b01111);
+		//$display("reading upper: %x at %x", READ_BUFFER[13:8], 5'b01110);
+		//$display("reading lower: %x at %x", READ_BUFFER[7:0], 5'b01111);
 		
-		$monitor($time, " HSYNC %b", HSYNC);
+		$monitor("HSYNC %b at %d micros", HSYNC, $time/1000);
 		CLK = 0;
 	end
 	
 	
-	//reg clk_16 = 0;
 	
 	always
 	begin
-		#1000 CLK = ~CLK;
+		// 24 mghz is 41.66 ns
+		// 160 ns is somehow 3.125 mghz
+		#160 CLK = ~CLK; // idk why this is off but this ends up being 3 mghz.
 	end
 	
 	

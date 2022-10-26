@@ -1,3 +1,5 @@
+`timescale 1 ns/10 ps
+
 // http://bitsavers.trailing-edge.com/components/motorola/_dataSheets/6845.pdf
 module MC6845(E, CSn, RS, RW, D,
 			  CLK, RSTn,
@@ -39,7 +41,7 @@ module MC6845(E, CSn, RS, RW, D,
 	reg [6:0] VERTICAL_DISPLAYED;	// R6  00110 number of displayed vertical character rows. in character row times. R6 < R4.
 	reg [6:0] V_SYNC_POS;		 	// R7  00111 vertical sync position. in character row times R6 <= R7 <= R4.
 	reg [1:0] INTERLACE_MODE_SKEW;	// R8  01000
-	reg [4:0] MAX_SCANLINE_ADDRESS; // R9  01001
+	reg [4:0] MAX_SCANLINE_ADDRESS; // R9  01001 number of scan lines per character including spacing. value is no scanlines - 1
 	reg [6:0] CURSOR_START;			// R10 01010
 	reg [4:0] CURSOR_END;			// R11 01011
 	reg [13:0] START_ADDRESS;		// R12 01100 high
@@ -116,22 +118,38 @@ module MC6845(E, CSn, RS, RW, D,
 	reg [3:0] HSYNC_COUNTER = 0; // counter for HSYNC pulse width;
 	reg IN_HSYNC = 0; // this is only 1 during HSYNC pulse
 	
+	time sync_start;
+	time disp_start;
+	
+	reg V_CTR = 0;
+	reg [4:0] SCAN_LINE_CTR = 0;
+	
 	always @(negedge CLK)
 	begin
-		$display("Clocking %x", H_CTR);
+		$strobe("H_CTR %x at %d micros", H_CTR, $time/1000);
 		// HSYNC generation
-		H_CTR <= H_CTR + 1;
+		H_CTR = H_CTR + 1;
 		case (H_CTR)
 			HORIZONTAL_TOTAL : begin // we reached end of horizontal line
-				H_CTR <= 8'b0;
+				H_CTR = 8'b0;
 				H_DISP <= 1;
+				
+				// increment scan line counter
+				SCAN_LINE_CTR = SCAN_LINE_CTR + 1;
+				
+				$display("started display region");
+				disp_start = $time;
+				
 			end
 			HORIZONTAL_DISPLAYED : begin
 				H_DISP <= 0;
+				IN_HSYNC <= 0;
+				$display("display region lasted %d micros", ($time - disp_start)/1000);
 				// TODO: memory refresh stuff needs to be done since we want to show characters until this point
 			end
 			H_SYNC_POS : begin
 				IN_HSYNC <= 1;
+				sync_start = $time;
 			end
 			8'd256 : H_CTR <= 0;
 		endcase
@@ -142,6 +160,7 @@ module MC6845(E, CSn, RS, RW, D,
 				IN_HSYNC <= 0;
 				HSYNC_COUNTER <= 0;
 				// TODO: this is somehow involved in vertical control
+				$strobe("length of sync pulse: %d micros", ($time - sync_start)/1000);
 			end
 			4'b1111 : HSYNC_COUNTER <= 0;
 		endcase
