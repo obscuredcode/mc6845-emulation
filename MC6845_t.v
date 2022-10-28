@@ -22,12 +22,15 @@ module MC6845_t;
 	
 	reg [13:0] READ_BUFFER;
 	
-	MC6845 crtc (.CSn(CSn), .E(E), .D(D), .RS(RS), .RW(RW), .CLK(CLK), .RSTn(RSTn), .HSYNC(HSYNC), .VSYNC(VSYNC), .DE(DE));
+	wire cc;
+	
+	MC6845 crtc (.CSn(CSn), .E(E), .D(D), .RS(RS), .RW(RW), .CLK(cc), .RSTn(RSTn), .HSYNC(HSYNC), .VSYNC(VSYNC), .DE(DE));
 	
 	localparam period = 20;
 	
 	initial
 	begin
+		/*
 		CSn = 0;
 		write_register(5'b00000,8'h5e);
 		write_register(5'b00001,8'h4c);
@@ -62,16 +65,23 @@ module MC6845_t;
 		//$display("reading lower: %x at %x", READ_BUFFER[7:0], 5'b01111);
 		
 		//$monitor("VSYNC %b at %d micros", VSYNC, $time/1000);
-		CLK = 0;
+		//CLK = 0;
+		*/
 	end
 	
+	reg MAX10_CLK_50 = 0;
 	
+	
+	//counter #(8, 0, 32) dotcounter(.clock(MAX10_CLK_50), .out(cc));
+	clock_divider #(28'd16) cd (.clock_in(MAX10_CLK_50),.clock_out(cc));
 	
 	always
 	begin
 		// 24 mghz is 41.66 ns
 		// 160 ns is somehow 3.125 mghz
-		#160 CLK = ~CLK; // idk why this is off but this ends up being 3 mghz.
+		//#160 CLK = ~CLK; // idk why this is off but this ends up being 3 mghz.
+		
+		#10 MAX10_CLK_50 = ~MAX10_CLK_50;
 	end
 	
 	

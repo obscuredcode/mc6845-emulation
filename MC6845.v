@@ -32,16 +32,16 @@ module MC6845(E, CSn, RS, RW, D,
 		TODO: do I want to implement LIGHT_PEN?
 	*/
 	reg [4:0] ADDRESS;          	// AR  XXXXX address. selects which register to read or write from. write-only
-	reg [7:0] HORIZONTAL_TOTAL; 	// R0  00000 horizontal timing. determines HS frequency by defining HS period in character times. (DISPLAYED CHARS + NON_DISPLAYED - 1 character times) write-only
-	reg [7:0] HORIZONTAL_DISPLAYED; // R1  00001 displayed horizontal characeters per line. R1 > R0. write-only
-	reg [7:0] H_SYNC_POS;			// R2  00010 horizontal sync position. R2 + R3 > R0. R2 > R1. write-only
-	reg [3:0] SYNC_WIDTH;			// R3  00011 sync width for HS. VS sync width is fixed to 16. HS pulse width is in character times. write-only
-	reg [6:0] VERTICAL_TOTAL;		// R4  00100 vertical timing. determines VS frequency. in character row times - 1. 
-	reg [4:0] VERTICAL_TOTAL_ADJ;   // R5  00101 fraction component of vertical timing.
-	reg [6:0] VERTICAL_DISPLAYED;	// R6  00110 number of displayed vertical character rows. in character row times. R6 < R4.
-	reg [6:0] V_SYNC_POS;		 	// R7  00111 vertical sync position. in character row times R6 <= R7 <= R4.
+	reg [7:0] HORIZONTAL_TOTAL  = 8'h5e; 	// R0  00000 horizontal timing. determines HS frequency by defining HS period in character times. (DISPLAYED CHARS + NON_DISPLAYED - 1 character times) write-only
+	reg [7:0] HORIZONTAL_DISPLAYED = 8'h4c; // R1  00001 displayed horizontal characeters per line. R1 > R0. write-only
+	reg [7:0] H_SYNC_POS = 8'h4e;			// R2  00010 horizontal sync position. R2 + R3 > R0. R2 > R1. write-only
+	reg [3:0] SYNC_WIDTH = 8'h0c;			// R3  00011 sync width for HS. VS sync width is fixed to 16. HS pulse width is in character times. write-only
+	reg [6:0] VERTICAL_TOTAL = 8'h40;		// R4  00100 vertical timing. determines VS frequency. in character row times - 1. 
+	reg [4:0] VERTICAL_TOTAL_ADJ = 8'h05;   // R5  00101 fraction component of vertical timing.
+	reg [6:0] VERTICAL_DISPLAYED = 8'h3c;	// R6  00110 number of displayed vertical character rows. in character row times. R6 < R4.
+	reg [6:0] V_SYNC_POS = 8'h3d;		 	// R7  00111 vertical sync position. in character row times R6 <= R7 <= R4.
 	reg [1:0] INTERLACE_MODE_SKEW;	// R8  01000
-	reg [4:0] MAX_SCANLINE_ADDRESS; // R9  01001 number of scan lines per character including spacing. value is no scanlines - 1
+	reg [4:0] MAX_SCANLINE_ADDRESS = 8'h07; // R9  01001 number of scan lines per character including spacing. value is no scanlines - 1
 	reg [6:0] CURSOR_START;			// R10 01010
 	reg [4:0] CURSOR_END;			// R11 01011
 	reg [13:0] START_ADDRESS;		// R12 01100 high
@@ -136,7 +136,7 @@ module MC6845(E, CSn, RS, RW, D,
 		// HSYNC generation
 		H_CTR = H_CTR + 1;
 		case (H_CTR)
-			HORIZONTAL_TOTAL : begin // we reached end of horizontal line
+			HORIZONTAL_TOTAL + 1 : begin // we reached end of horizontal line
 				H_CTR = 8'b0;
 				H_DISP <= 1;
 				

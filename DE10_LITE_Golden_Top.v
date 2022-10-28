@@ -144,7 +144,7 @@ counter count(.clock(pb_out), .out(LEDR[3:0]));
 
 	wire CSn; // chip enable. active low -> writing or reading from register. 
 	wire E; // enable/clock, neg edge -> enables data IO buffers and clocks data
-	reg [7:0] D; // biderectional data bus
+	wire [7:0] D; // biderectional data bus
 	wire RS; // register select. low -> writing to address register, high -> writing to register selected by address
 	wire RW; // read or write register. low -> write, high -> read 
 	
@@ -155,11 +155,23 @@ counter count(.clock(pb_out), .out(LEDR[3:0]));
 	wire VSYNC;
 	wire DE; // display enable. high -> addressing in active display area.
 
+	wire dotclock;
+	
+	clock_divider #(28'd16) cd (.clock_in(MAX10_CLK1_50), .clock_out(dotclock));
 	
 	
-	MC6845 crtc (.CSn(CSn), .E(E), .D(D), .RS(RS), .RW(RW), .CLK(CLK), .RSTn(RSTn), .HSYNC(HSYNC), .VSYNC(VSYNC), .DE(DE));
+	MC6845 crtc (.CSn(CSn), .E(E), .D(D), .RS(RS), .RW(RW), .CLK(dotclock), .RSTn(RSTn), .HSYNC(HSYNC), .VSYNC(VSYNC), .DE(DE));
 
-
+	wire g;
+	
+	clock_divider #(28'd256) color (.clock_in(dotclock), .clock_out(g));
+	
+	assign VGA_G[3:0] = {4{g & DE}};
+	//assign VGA_HS = ~HSYNC;
+	assign VGA_VS = ~VSYNC;
+	assign VGA_HS = ~HSYNC;
+	assign ARDUINO_IO[0] = dotclock;
+	
 //=======================================================
 //  Structural coding
 //=======================================================
