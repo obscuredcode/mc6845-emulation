@@ -9,8 +9,11 @@ module MC6845_t;
 	reg CLK; // character clock, neg edge ->
 	wire RSTn; // reset. active low -> all registers cleared and outputs are driven low.
 
-	wire HSYNC; //
-	wire VSYNC;
+	wire hs; //
+	wire vs;
+	wire red;
+	wire grn;
+	wire blu;
 	wire DE; // display enable. high -> addressing in active display area.
 
 	reg [7:0] WRITE_BUFFER;
@@ -24,13 +27,13 @@ module MC6845_t;
 	
 	wire cc;
 	
-	MC6845 crtc (.CSn(CSn), .E(E), .D(D), .RS(RS), .RW(RW), .CLK(cc), .RSTn(RSTn), .HSYNC(HSYNC), .VSYNC(VSYNC), .DE(DE));
+	MC6845 crtc (.CSn(CSn), .E(E), .D(D), .RS(RS), .RW(RW), .CLK(cc), .RSTn(RSTn), .HSYNC(hs), .VSYNC(vs), .DE(DE));
 	
 	localparam period = 20;
 	
 	initial
 	begin
-		/*
+		
 		CSn = 0;
 		write_register(5'b00000,8'h5e);
 		write_register(5'b00001,8'h4c);
@@ -66,7 +69,7 @@ module MC6845_t;
 		
 		//$monitor("VSYNC %b at %d micros", VSYNC, $time/1000);
 		//CLK = 0;
-		*/
+		
 	end
 	
 	reg MAX10_CLK_50 = 0;
